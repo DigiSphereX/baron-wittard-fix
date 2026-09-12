@@ -81,3 +81,12 @@ Flags:
 ## License
 
 MIT — see [LICENSE](LICENSE). Game content is © Iceberg Interactive / the original owners.
+
+---
+
+## ☕ Support this project
+
+Free and open source (MIT). If this fix saved you time or money, consider a small thank-you:
+
+- **GitHub Sponsors** -> https://github.com/sponsors/DigiSphereX
+- **PayPal** -> https://www.paypal.com/donate/?hosted_button_id=CFANQH892RPH2
