@@ -1,5 +1,7 @@
 # Baron Wittard: Nemesis of Ragnarok — Fix & Launcher
 
+[![Donate](https://img.shields.io/badge/Donate-PayPal-0070BA)](https://www.paypal.com/donate/?hosted_button_id=CFANQH892RPH2)
+
 One-click repair for **Baron Wittard: Nemesis of Ragnarok** (2011) not starting on Windows 10/11.
 
 The game is built on the **DX Studio engine**, but the player's **DX Studio Player** runtime is *not* bundled with the game. The game's launcher downloads and installs it from `www.dxstudio.com` at first run — and that server has been offline (HTTP **502**), so on modern machines the game sits in the background with no window, forever.
@@ -94,7 +96,7 @@ MIT — see [LICENSE](LICENSE). Game content is © Iceberg Interactive / the ori
 
 ## ☕ Support this project
 
-Free and open source (MIT). If this fix saved you time or money, consider a small thank-you:
+Free and open source (MIT). If this project saved you time or money, consider a small thank-you:
 
 - **GitHub Sponsors** -> https://github.com/sponsors/DigiSphereX
 - **PayPal** -> https://www.paypal.com/donate/?hosted_button_id=CFANQH892RPH2
