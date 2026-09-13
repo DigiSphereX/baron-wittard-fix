@@ -78,6 +78,14 @@ Flags:
 - Nothing else is downloaded; no telemetry, no network activity beyond the single archived file.
 - The repository contains **no game files** (copyright) — only the fix tooling and documentation.
 
+## Disclaimer / Backup advice
+
+Use this fix at your own risk. Before applying it: read the scripts (everything here
+is plain, readable source), **back up** the game folder / registry areas it touches,
+and create a system restore point. A fix that works on most machines can behave
+unexpectedly on a specific setup. The author is not responsible for any
+unintentional damage or data loss.
+
 ## License
 
 MIT — see [LICENSE](LICENSE). Game content is © Iceberg Interactive / the original owners.
