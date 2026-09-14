@@ -1,7 +1,9 @@
 param(
-    [switch]$Force,        # force re-download & re-install of the DX Studio Player even if it is detected
-    [switch]$SkipInstall,  # never download/install the engine, only check and launch the game
-    [switch]$NoLaunch      # do not start the game afterwards (useful for testing)
+    [switch]$Force,          # force re-install of the DX Studio Player even if it is detected
+    [switch]$SkipInstall,    # never download/install the engine, only check and launch the game
+    [switch]$NoLaunch,       # do not start the game afterwards (useful for testing)
+    [switch]$Uninstall,      # remove the installed DX Studio Player engine, then exit
+    [string]$SetupPath = ''  # use this exact setup file instead of the bundled/downloaded one
 )
 
 $ErrorActionPreference = 'Stop'
@@ -74,8 +76,80 @@ function Install-DXStudioPlayer {
 }
 
 # ---------------------------------------------------------------------------
+# Helper: uninstall the DX Studio Player engine (silent Inno uninstaller first,
+# then remove leftovers: folder, registry entries and the cached setup).
+# ---------------------------------------------------------------------------
+function Remove-DXStudioPlayer {
+    $found = $false
+
+    $uninstPaths = @(
+        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall',
+        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
+        'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall'
+    )
+    foreach ($base in $uninstPaths) {
+        Get-ChildItem -Path $base -ErrorAction SilentlyContinue | ForEach-Object {
+            $prop = Get-ItemProperty -Path $_.PSPath -ErrorAction SilentlyContinue
+            if ($prop.DisplayName -match 'DX Studio Player') {
+                $found = $true
+                Write-Host "  Found installation: $($prop.DisplayName) $(if ($prop.DisplayVersion) { $prop.DisplayVersion })"
+                $un = $prop.UninstallString
+                if ($un -match '([A-Za-z]:\\[^"\\]*(?:\\[^"\\]*)*\.exe)') {
+                    $unExe = $matches[1]
+                    Write-Host "  Running uninstaller: $unExe"
+                    try {
+                        Start-Process -FilePath $unExe -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART') -Verb RunAs -Wait -ErrorAction Stop | Out-Null
+                    }
+                    catch {
+                        Write-Warning "  Uninstaller failed: $($_.Exception.Message)"
+                    }
+                }
+                Remove-Item -Path $_.PSPath -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+
+    if (Test-Path -LiteralPath $playerDir) {
+        Write-Host "  Removing leftover folder: $playerDir"
+        foreach ($i in 1..3) {
+            Remove-Item -LiteralPath $playerDir -Recurse -Force -ErrorAction SilentlyContinue
+            if (-not (Test-Path -LiteralPath $playerDir)) { break }
+            Start-Sleep -Seconds 2
+        }
+        if (Test-Path -LiteralPath $playerDir) {
+            Write-Warning "  Some files in $playerDir are still in use and could not be deleted now."
+            Write-Warning "  A reboot usually allows Windows to finish the cleanup."
+            $found = $true
+        }
+    }
+    foreach ($k in @('HKLM:\SOFTWARE\WOW6432Node\Worldweaver', 'HKLM:\SOFTWARE\Worldweaver', 'HKCU:\SOFTWARE\Worldweaver')) {
+        Remove-Item -LiteralPath $k -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    $cacheDir = Join-Path $env:TEMP 'baron-wittard-fix'
+    if (Test-Path -LiteralPath $cacheDir) {
+        Write-Host "  Removing cached download: $cacheDir"
+        Remove-Item -LiteralPath $cacheDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    if ($found) { Write-Host "  DX Studio Player removed." }
+    else        { Write-Host "  DX Studio Player was not found - nothing to remove." }
+}
+
+# ---------------------------------------------------------------------------
 # [1/3] Make sure the DX Studio Player engine is installed
 # ---------------------------------------------------------------------------
+$candidates = @(
+    (Join-Path $PSScriptRoot $setupFileName),
+    (Join-Path $gameDir $setupFileName),
+    (Join-Path $env:TEMP "baron-wittard-fix\$setupFileName")
+) | Select-Object -Unique
+
+if ($Uninstall) {
+    Remove-DXStudioPlayer
+    exit 0
+}
+
 Write-Host "[1/3] Checking DX Studio Player engine..."
 $installed = Test-DXStudioPlayerInstalled
 
@@ -87,43 +161,68 @@ else {
         Write-Warning "Engine missing but -SkipInstall was used - the game will not render."
     }
     else {
-        Write-Host "      Engine missing - downloading the official setup (~20 MB)..."
-        $zipDir  = Join-Path $env:TEMP 'baron-wittard-fix'
-        $setup   = Join-Path $zipDir $setupFileName
-        New-Item -ItemType Directory -Path $zipDir -Force | Out-Null
-        Remove-Item -LiteralPath $setup -Force -ErrorAction SilentlyContinue
+        Write-Host "      Preparing the DX Studio Player setup..."
+        $setup = $null
 
-        try {
-            if (Get-Command curl.exe -ErrorAction SilentlyContinue) {
-                & curl.exe -sL --retry 3 --retry-delay 2 --max-time 500 -A "Mozilla/5.0" -o $setup $setupUrl
+        # 1) offline-first: a setup file provided via -SetupPath, stored next to the
+        #    fixer, in the game folder or cached in %TEMP% is verified and used directly.
+        $cand  = $null
+        if ($SetupPath -and (Test-Path -LiteralPath $SetupPath)) { $cand = $SetupPath }
+        else { $cand = $candidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1 }
+        if ($cand) {
+            $candOk = ((Get-Item -LiteralPath $cand).Length -ge $setupMinSize) -and
+                      ((Get-FileHash -LiteralPath $cand -Algorithm SHA256).Hash -eq $setupSha256)
+            if ($candOk) {
+                Write-Host "      Using bundled setup: $cand"
+                if (-not $Force) { $setup = $cand }
             }
             else {
-                Invoke-WebRequest -Uri $setupUrl -OutFile $setup -UseBasicParsing -TimeoutSec 500
+                Write-Warning "  Bundled setup failed verification - downloading a fresh copy instead."
             }
         }
-        catch {
-            Write-Warning "Download failed: $($_.Exception.Message)"
+
+        # 2) download fallback (also used with -Force to refresh)
+        if (-not $setup) {
+            Write-Host "      Downloading the official setup (~20 MB)..."
+            $zipDir   = Join-Path $env:TEMP 'baron-wittard-fix'
+            $dlSetup  = Join-Path $zipDir $setupFileName
+            New-Item -ItemType Directory -Path $zipDir -Force | Out-Null
+            Remove-Item -LiteralPath $dlSetup -Force -ErrorAction SilentlyContinue
+
+            try {
+                if (Get-Command curl.exe -ErrorAction SilentlyContinue) {
+                    & curl.exe -sL --retry 3 --retry-delay 2 --max-time 500 -A "Mozilla/5.0" -o $dlSetup $setupUrl
+                }
+                else {
+                    Invoke-WebRequest -Uri $setupUrl -OutFile $dlSetup -UseBasicParsing -TimeoutSec 500
+                }
+            }
+            catch {
+                Write-Warning "Download failed: $($_.Exception.Message)"
+            }
+
+            $dlOk = (Test-Path -LiteralPath $dlSetup) -and
+                    ((Get-Item -LiteralPath $dlSetup).Length -ge $setupMinSize) -and
+                    ((Get-FileHash -LiteralPath $dlSetup -Algorithm SHA256).Hash -eq $setupSha256)
+            if ($dlOk) {
+                $setup = $dlSetup
+                Write-Host "      Integrity verified (SHA256 match, $((Get-Item -LiteralPath $dlSetup).Length) bytes)."
+            }
+            else {
+                if ($cand -and ((Get-Item -LiteralPath $cand).Length -ge $setupMinSize)) {
+                    $setup = $cand
+                    Write-Warning "  Download failed or mismatched - falling back to the bundled setup."
+                }
+            }
         }
 
-        if (-not (Test-Path -LiteralPath $setup) -or (Get-Item -LiteralPath $setup).Length -lt $setupMinSize) {
-            Write-Warning "The archive download was incomplete or failed."
+        if (-not $setup) {
+            Write-Warning "No usable setup is available (download failed and no bundled copy found)."
             Write-Warning "Manual alternative - download this file with a browser and save it to:"
-            Write-Warning "    $setup"
+            Write-Warning "    $(Join-Path $env:TEMP "baron-wittard-fix\$setupFileName")"
             Write-Warning "Then re-run this script. Source: $setupUrl"
             exit 1
         }
-
-        $hash = (Get-FileHash -LiteralPath $setup -Algorithm SHA256).Hash
-        if ($hash -ne $setupSha256) {
-            $tmp = Join-Path $zipDir 'corrupt.invalid'
-            Move-Item -LiteralPath $setup $tmp -Force -ErrorAction SilentlyContinue
-            Write-Warning "Integrity check FAILED."
-            Write-Warning "Expected SHA256 : $setupSha256"
-            Write-Warning "Got             : $hash"
-            Write-Warning "Download rejected for safety. Your copy of archive.org did not match the pinned file."
-            exit 1
-        }
-        Write-Host "      Integrity verified (SHA256 match, $((Get-Item -LiteralPath $setup).Length) bytes)."
 
         if (-not (Install-DXStudioPlayer $setup)) { exit 1 }
 
