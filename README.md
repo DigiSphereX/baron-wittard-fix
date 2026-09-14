@@ -23,9 +23,9 @@ or the symptom on Windows 11:
 **Why:** `baron_wittard.exe` is only a *launcher*. It extracts `DXStudioPlayerSetupWeb.exe` to `%TEMP%` and runs it. That web-setup tries to download the full player installer from `dxstudio.com` — whose backend is dead (returns 502). The engine is never installed, so the game has nothing to render the `.dxscene` scenes with.
 
 <p align="center">
-  <img src="ScreenShot/errors/01-batch-play-not-recognized.png" width="520" alt="'Play' is not recognized"><br>
-  <img src="ScreenShot/errors/02-batch-launcher-not-recognized.png" width="520" alt="'Launcher' is not recognized"><br>
-  <img src="ScreenShot/errors/03-download-failed.png" width="520" alt="Download failed">
+  <img src="https://raw.githubusercontent.com/DigiSphereX/baron-wittard-fix/main/ScreenShot/errors/01-batch-play-not-recognized.png" width="520" alt="'Play' is not recognized"><br>
+  <img src="https://raw.githubusercontent.com/DigiSphereX/baron-wittard-fix/main/ScreenShot/errors/02-batch-launcher-not-recognized.png" width="520" alt="'Launcher' is not recognized"><br>
+  <img src="https://raw.githubusercontent.com/DigiSphereX/baron-wittard-fix/main/ScreenShot/errors/03-download-failed.png" width="520" alt="Download failed">
 </p>
 
 ## The Fix
@@ -37,9 +37,9 @@ or the symptom on Windows 11:
 5. Launches the game.
 
 <p align="center">
-  <img src="ScreenShot/install/04-dxstudio-setup-running.png" width="520" alt="DX Studio Player setup running"><br>
-  <img src="ScreenShot/install/05-netframework-auto-install.png" width="520" alt="Windows installing .NET Framework automatically"><br>
-  <img src="ScreenShot/install/06-netframework-downloading.png" width="520" alt=".NET Framework download in progress">
+  <img src="https://raw.githubusercontent.com/DigiSphereX/baron-wittard-fix/main/ScreenShot/install/04-dxstudio-setup-running.png" width="520" alt="DX Studio Player setup running"><br>
+  <img src="https://raw.githubusercontent.com/DigiSphereX/baron-wittard-fix/main/ScreenShot/install/05-netframework-auto-install.png" width="520" alt="Windows installing .NET Framework automatically"><br>
+  <img src="https://raw.githubusercontent.com/DigiSphereX/baron-wittard-fix/main/ScreenShot/install/06-netframework-downloading.png" width="520" alt=".NET Framework download in progress">
 </p>
 
 ## Quick Install
