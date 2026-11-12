@@ -1,12 +1,21 @@
 # Baron Wittard: Nemesis of Ragnarok — Fix & Launcher
 
-[![Donate](https://img.shields.io/badge/Donate-PayPal-0070BA)](https://www.paypal.com/donate/?hosted_button_id=CFANQH892RPH2)
+[![License: MIT](https://img.shields.io/badge/License-MIT-informational.svg?style=for-the-badge)](LICENSE)
+[![Release](https://img.shields.io/badge/Release-v1.0.1-brightgreen.svg?style=for-the-badge)](https://github.com/DigiSphereX/baron-wittard-fix/releases/latest)
+[![Donate](https://img.shields.io/badge/Donate-PayPal-0070BA.svg?style=for-the-badge)](https://www.paypal.com/donate/?hosted_button_id=CFANQH892RPH2)
 
 One-click repair for **Baron Wittard: Nemesis of Ragnarok** (2011) not starting on Windows 10/11.
 
 The game is built on the **DX Studio engine**, but the player's **DX Studio Player** runtime is *not* bundled with the game. The game's launcher downloads and installs it from `www.dxstudio.com` at first run — and that server has been offline (HTTP **502**), so on modern machines the game sits in the background with no window, forever.
 
 This release bundles the **official Worldweaver installer** (`vendor\DXStudioPlayerSetup.exe`, SHA256-pinned) next to the fixer, so the engine can be installed **fully offline**. If that bundled copy is missing, the script falls back to the Internet Archive and verifies the download before running anything.
+
+## Download
+
+Get the latest release from
+[github.com/DigiSphereX/baron-wittard-fix/releases/latest](https://github.com/DigiSphereX/baron-wittard-fix/releases/latest)
+— `baron-wittard-fix-v1.0.1-offline.zip` already contains the official DX Studio
+Player installer in `vendor\`, so no internet connection is needed.
 
 ## The Problem
 
@@ -116,5 +125,5 @@ MIT — see [LICENSE](LICENSE). Game content is © Iceberg Interactive / the ori
 
 Free and open source (MIT). If this project saved you time or money, consider a small thank-you:
 
-- **GitHub Sponsors** -> https://github.com/sponsors/DigiSphereX
-- **PayPal** -> https://www.paypal.com/donate/?hosted_button_id=CFANQH892RPH2
+- [GitHub Sponsors](https://github.com/sponsors/DigiSphereX)
+- [PayPal](https://www.paypal.com/donate/?hosted_button_id=CFANQH892RPH2)
